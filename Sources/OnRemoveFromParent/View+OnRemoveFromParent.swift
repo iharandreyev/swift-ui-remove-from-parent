@@ -20,43 +20,20 @@ private extension EnvironmentValues {
 }
 
 private struct OnRemoveFromParentViewModifier: ViewModifier {
-  @Environment(\.viewIdentity)
-  private var id
-  
-  let fileID: StaticString
-  let line: UInt
-  
+  @Environment(\.self)
+  private var environment
+
   let onRemoveFromParent: @MainActor () -> Void
   
   @ViewBuilder
   func body(content: Content) -> some View {
-    if let id {
-      content.environment(
-        \.deinitReporter,
-         DeinitReportersPool.shared.spawn(forKey: id, onDeinit: onRemoveFromParent)
-      )
-    } else {
-      content.onAppear {
-        reportIssue(
-           """
-           
-           Custom view identity is missing!
-           'onRemoveFromParent' closure will never be invoked.
-           
-           In order to use 'onRemoveFromParent', a custom identity must be set.
-           To fix this issue, provide an identity using 'identify(:)' modifier:
-           
-           yourView
-             .onRemoveFromParent(perform: { /* task */ }
-             .identify(customHashableId)
-           
-           Caused by \(fileID):\(line)
-           """,
-           fileID: fileID,
-           line: line
-        )
-      }
-    }
+    content.environment(
+      \.deinitReporter,
+       DeinitReportersPool.shared.spawn(
+        forKey: environment.description.hashValue,
+        onDeinit: onRemoveFromParent
+       )
+    )
   }
 }
 
@@ -65,7 +42,6 @@ extension View {
   ///
   /// **LIMITATIONS:**
   ///
-  /// - The view identity must be bound to a proxy value with `identify(as:)` modifier.
   /// - There can be only a single callback for a given view.
   ///
   ///```swift
@@ -89,14 +65,10 @@ extension View {
   ///   - onRemoveFromParent: The closure to be invoked when the view is removed from view hierarchy.
   @inline(__always)
   public func onRemoveFromParent(
-    fileID: StaticString = #fileID,
-    line: UInt = #line,
     perform onRemoveFromParent: @MainActor @escaping () -> Void
   ) -> some View {
     modifier(
       OnRemoveFromParentViewModifier(
-        fileID: fileID,
-        line: line,
         onRemoveFromParent: onRemoveFromParent
       )
     )

@@ -18,15 +18,9 @@ let package = Package(
       ]
     ),
   ],
-  dependencies: [
-    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.2.2"),
-  ],
   targets: [
     .target(
-      name: "OnRemoveFromParent",
-      dependencies: [
-        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
-      ]
+      name: "OnRemoveFromParent"
     ),
     .testTarget(
       name: "OnRemoveFromParentTests",
